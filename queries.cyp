@@ -1,3 +1,5 @@
+MATCH (s:Package)-[r:USES]->(o:Package) RETURN s, r, o LIMIT 300
+
 MATCH (n:Package)
   WHERE n.name = 'react-app'
 RETURN n
@@ -55,7 +57,6 @@ MATCH (o:Package)
   WHERE o.name = 'delegates'
 RETURN shortestPath((s)-[*1..20]-(o))
 
-// takes a while
 MATCH (s:Package)
   WHERE s.name = 'react-app'
 WITH s
@@ -63,7 +64,7 @@ MATCH (o:Package)
 WITH s, o, size((o)-[:USES]->(:Package)) AS c
   WHERE c = 0
 RETURN shortestPath((s)-[*1..20]-(o)) AS p
-//turn off auto linking, rerun
+LIMIT 100
 
 MATCH (s:Package)
   WHERE s.name = 'react-app'
@@ -71,7 +72,7 @@ WITH s
 MATCH (o:Package)
 WITH s, o, size((o)-[:USES]->(:Package)) AS c
   WHERE c = 0
-WITH shortestPath((s)-[*1..10]->(o)) AS p
+WITH shortestPath((s)-[:USES*1..10]->(o)) AS p
 WITH p, size(p) AS s
   WHERE s = 10
 RETURN p
@@ -83,13 +84,7 @@ WITH s
 MATCH (o:Package)
 WITH s, o, size((o)-[:USES]->(:Package)) AS c
   WHERE c = 0
-RETURN shortestPath((s)-[*1..3]->(o))
-
-
-MATCH (s:Package)
-  WHERE s.name = 'react-app'
-SET s:Anchor
-RETURN s
+RETURN shortestPath((s)-[:USES*1..3]->(o))
 
 MATCH (s:Package)
   WHERE s.name = 'react-app'
@@ -111,17 +106,18 @@ SET n:Locus
 MATCH (n:Package)
 WITH n, size((n)<-[:USES]-(:Package)) AS c
   WHERE c = 57
-MATCH p = (n)<-[:USES]-(m:Package)<-[:USES]-(:Package)
+MATCH p = (n)<-[:USES]-(m:Package)-[:USES]-(:Package)
   WHERE NOT m.name =~ 'babel.*'
 RETURN p
 
-MATCH (s)-[r:USES]->(o)
+MATCH (s:Package)-[r:USES]->(o:Package)
   WHERE NOT s.name =~ 'babel.*'
 RETURN s, r, o
+LIMIT 300
 
 //Versions
-MATCH (n:Package)-[:VERSION]->(v:Version)
-RETURN n, v
+MATCH (s:Package)-[r:VERSION]->(o:Version)
+RETURN s, r, o
   LIMIT 1
 
 MATCH (p:Package)
@@ -141,24 +137,44 @@ RETURN p
 MATCH (p:Package)
 WITH p, size((p)-[:VERSION]->(:Version)) AS s
   WHERE s = 4
-MATCH (p)-[:USES]->(v:Version)
-RETURN p, v
+RETURN (p)-[:VERSION]->(:Version)
+
+MATCH (p:Package)
+WITH p, size((p)-[:VERSION]->(:Version)) AS s
+  WHERE s = 4
+MATCH (p)<-[u:USES]-(d:Package)
+RETURN p, u, d
+
+MATCH (p:Package)
+WITH p, size((p)-[:VERSION]->(:Version)) AS s
+  WHERE s = 4
+MATCH (p)-[w:WANTS]->(d:Package)
+RETURN p, w, d
 
 MATCH (p:Package)
 WITH p, size((p)-[:VERSION]->(:Version)) AS s
   WHERE s > 1
-MATCH (p)-[:USES]->(v:Version)
-RETURN p, v
+RETURN (p)-[:VERSION]->(:Version)
 
 MATCH (p:Package)
 WITH p, size((p)-[:VERSION]->(:Version)) AS s
   WHERE s > 1
-MATCH (p)-[:USES]->(v:Version)
+MATCH (p)<-[u:USES]-(d:Package)
+RETURN p, u, d
+
+MATCH (p:Package)
+WITH p, size((p)-[:VERSION]->(:Version)) AS s
+  WHERE s > 1
+MATCH (p)-[:VERSION]->(v:Version)
 WITH p.name AS package, collect(v.name) AS versions
 WITH package, versions, size(versions) AS c
 RETURN package, versions
   ORDER BY c DESC
 
 MATCH (s:Package)-[r:USES]->(o:Package)
+  WHERE s.name = 'yargs'
+RETURN s, r, o
+
+MATCH (s:Package)-[r:WANTS]->(o:Package)
   WHERE s.name = 'yargs'
 RETURN s, r, o

@@ -31,7 +31,7 @@ const (
 		"MERGE (o:Package {name: $dep})\n" +
 		"MERGE (s)-[:VERSION]->(:Version {name: $version})\n" +
 		"MERGE (s)-[:USES]->(o)\n" +
-		"MERGE (s)<-[:WANTS {name: $semver}]-(o)\n"
+		"MERGE (s)-[:WANTS {name: $semver}]->(o)\n"
 	nameParameter    = "name"
 	depParameter     = "dep"
 	versionParameter = "version"

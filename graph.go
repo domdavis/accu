@@ -27,9 +27,11 @@ const (
 	user     = "neo4j"
 	password = "password"
 
-	insert = "MERGE (s:Package {name: $name})\n" +
+	create = "MERGE (s:Package {name: $name})\n" +
+		"MERGE (s)-[:VERSION]->(:Version {name: $version})\n"
+
+	link = "MATCH (s:Package {name: $name})\n" +
 		"MERGE (o:Package {name: $dep})\n" +
-		"MERGE (s)-[:VERSION]->(:Version {name: $version})\n" +
 		"MERGE (s)-[:USES]->(o)\n" +
 		"MERGE (s)-[:WANTS {name: $semver}]->(o)\n"
 	nameParameter    = "name"
@@ -42,10 +44,23 @@ func newGraph() *neo4j {
 	return &neo4j{client: client}
 }
 
-func (n *neo4j) process(name, version, dep, semver string) error {
+func (n *neo4j) create(name, version string) error {
+	log.Printf("Creating %s (%s)", name, version)
+	query := query{Statements: []statement{{
+		Statement: create,
+		Parameters: map[string]string{
+			nameParameter:    name,
+			versionParameter: version,
+		},
+	}}}
+
+	return n.send(query)
+}
+
+func (n *neo4j) link(name, version, dep, semver string) error {
 	log.Printf("Mapping %s to %s", name, dep)
 	query := query{Statements: []statement{{
-		Statement: insert,
+		Statement: link,
 		Parameters: map[string]string{
 			nameParameter:    name,
 			depParameter:     dep,

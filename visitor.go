@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 )
@@ -17,7 +18,8 @@ type visitor struct {
 }
 
 type processor interface {
-	process(name, version, dependency, semver string) error
+	create(name, version string) error
+	link(name, version, dependency, semver string) error
 }
 
 const pkgName = "package.json"
@@ -28,6 +30,7 @@ func (v *visitor) visit(path string, f os.FileInfo, err error) error {
 	} else if data, err := ioutil.ReadFile(path); err != nil {
 		return err
 	} else {
+		fmt.Printf("Visting %s\n", path)
 		return v.parse(data)
 	}
 }
@@ -45,8 +48,12 @@ func (v *visitor) parse(data []byte) error {
 
 func (v *visitor) process(p processor) error {
 	for _, pkg := range v.Packages {
+		if err := p.create(pkg.Name, pkg.Version); err != nil {
+			return err
+		}
+
 		for dep, v := range pkg.Dependencies {
-			if err := p.process(pkg.Name, pkg.Version, dep, v); err != nil {
+			if err := p.link(pkg.Name, pkg.Version, dep, v); err != nil {
 				return err
 			}
 		}
